@@ -27,27 +27,13 @@ Edit **src/config.ts** to adjust:
 
 Drag to orbit; the logo auto-rotates gently.
 
-## Push to GitHub and deploy
+## Viewing the deployment
 
-1. **Set your Git identity** (once per machine if not set):
-   ```bash
-   git config --global user.email "your@email.com"
-   git config --global user.name "Your Name"
-   ```
+The app is deployed with **GitHub Pages** via GitHub Actions.
 
-2. **Create a new repository on GitHub** (e.g. `ASCII-test`). Do **not** add a README or .gitignore (this repo already has them).
+- **Live site:** `https://<your-username>.github.io/<repo-name>/`  
+  Example: if your repo is `ASCII-test` and your username is `jane`, open **https://jane.github.io/ASCII-test/**.
 
-3. **Commit and push:**
-   ```bash
-   git add .
-   git commit -m "Initial commit: ASCII logo scene"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-   git push -u origin main
-   ```
+- **Where to find it on GitHub:** Open your repo → **Settings → Pages**. Under "Build and deployment" you’ll see the published URL. You can also click the **Environments** link in the right sidebar (or the green check on the latest commit) to open the deployment.
 
-4. **Enable GitHub Pages:** In the repo on GitHub go to **Settings → Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-
-- **Test:** Every push and pull request runs `npm run build` so you can see if the project builds.
-- **Deploy:** Pushing to `main` builds and deploys the app to GitHub Pages. The site will be at `https://<your-username>.github.io/<repo-name>/`.
-- If your repo name is not `ASCII-test`, edit `vite.config.ts` and change `'/ASCII-test/'` to `'/<your-repo-name>/'`.
+- **After a push:** Each push to `main` triggers a new build and deploy. Check the **Actions** tab to see build status; when the workflow is green, the site is updated.
