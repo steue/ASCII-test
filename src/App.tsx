@@ -1,4 +1,5 @@
 import { Suspense, useState, useCallback, useEffect, useRef } from "react";
+import type { Mesh } from "three";
 import { createPortal } from "react-dom";
 import { Canvas } from "@react-three/fiber";
 import {
@@ -24,9 +25,20 @@ function Model({
   position,
 }: ModelProps) {
   const { scene } = useGLTF(modelUrl);
+  const cloned = scene.clone();
+  cloned.traverse((obj) => {
+    const mesh = obj as Mesh;
+    if (mesh.isMesh) {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      if (mesh.material) {
+        (mesh.material as any).needsUpdate = true;
+      }
+    }
+  });
   return (
     <primitive
-      object={scene.clone()}
+      object={cloned}
       scale={scale}
       rotation={rotation}
       position={position}
@@ -36,33 +48,15 @@ function Model({
 
 const PRESET_MODELS = [
   {
-    name: "Logo",
-    url: "https://danielcodepen.s3.us-east-1.amazonaws.com/figma.fbx.glb",
+    name: "Icecream",
+    url: "/ice_cream.glb",
     baseScale: 0.8,
-    position: [0, -0.2, 0] as [number, number, number],
-  },
-  {
-    name: "Computer",
-    url: "https://danielcodepen.s3.us-east-1.amazonaws.com/apple_macintosh.glb",
-    baseScale: 0.05,
-    position: [0, -0.3, 0] as [number, number, number],
-  },
-  {
-    name: "Plant",
-    url: "https://danielcodepen.s3.us-east-1.amazonaws.com/pothos_house_plant.glb",
-    baseScale: 5,
-    position: [0, -0.75, 0] as [number, number, number],
-  },
-  {
-    name: "Shiba",
-    url: "https://danielcodepen.s3.us-east-1.amazonaws.com/shiba.glb",
-    baseScale: 1,
     position: [0, 0, 0] as [number, number, number],
   },
   {
-    name: "Crystal",
-    url: "https://danielcodepen.s3.us-east-1.amazonaws.com/crystal_stone_rock.glb",
-    baseScale: 2,
+    name: "Present",
+    url: "/present.glb",
+    baseScale: 0.8,
     position: [0, 0, 0] as [number, number, number],
   },
 ];
@@ -253,6 +247,16 @@ export default function App() {
       invert: false,
     });
     setUserScale(1);
+    setBrightness(1.5);
+    setExposure(1.2);
+    setContrast(1);
+    setLightRotX(30);
+    setLightRotY(45);
+    setLightRotZ(0);
+    setAutoRotate(true);
+    setAutoRotateSpeed(2);
+    setSelectedModel(PRESET_MODELS[0].url);
+    setCustomFile(null);
   };
 
   const handleModelChange = (url: string) => {
@@ -772,8 +776,12 @@ export default function App() {
             min={0.4}
             max={3}
             step={0.05}
-            value={exposure}
-            onChange={(e) => setExposure(Number(e.target.value))}
+            value={3.4 - exposure}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              const inverted = 0.4 + 3 - v;
+              setExposure(inverted);
+            }}
             style={{
               width: 120,
               height: 6,
