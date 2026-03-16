@@ -50,13 +50,13 @@ const PRESET_MODELS = [
   {
     name: "Icecream",
     url: "/ice_cream.glb",
-    baseScale: 0.8,
+    baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
   {
     name: "Present",
     url: "/present.glb",
-    baseScale: 0.8,
+    baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
 ];
