@@ -11,9 +11,6 @@ import {
 
 const MODEL_ACCEPT = ".glb,.gltf";
 
-const assetUrl = (file: string) =>
-  new URL(file, (import.meta as any).env.BASE_URL).pathname;
-
 interface ModelProps {
   scale: number;
   rotation: [number, number, number];
@@ -52,14 +49,14 @@ function Model({
 const PRESET_MODELS = [
   {
     name: "Icecream",
-    url: assetUrl("ice_cream.glb"),
-    baseScale: 0.8,
+    url: "/ice_cream.glb",
+    baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
   {
     name: "Present",
-    url: assetUrl("present.glb"),
-    baseScale: 0.8,
+    url: "/present.glb",
+    baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
 ];
@@ -593,8 +590,8 @@ export default function App() {
               {[
                 { name: ".:-=+*#%@", chars: " .:-=+*#%@", resolution: 0.22 },
                 { name: ".-+*#", chars: " .-+*#", resolution: 0.2 },
-                { name: "Blocky", chars: " ∙≈░▒▓█", resolution: 0.16 },
-                { name: "Braille ⣿⠿⠶+·", chars: " ·+⠶⠿⣿", resolution: 0.2 },
+                { name: "Blocky", chars: " ∙░▒▓█", resolution: 0.2 },
+                { name: "Braille ⠐⠰⠶⠿⣿", chars: " ⠐⠰⠶⠿⣿", resolution: 0.2 },
               ].map((preset) => {
                 const isActive = activePresetChars === preset.chars;
                 return (
