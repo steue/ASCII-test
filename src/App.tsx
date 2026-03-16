@@ -66,8 +66,6 @@ const CUSTOM_MODEL_DEFAULTS = {
   position: [0, 0, 0] as [number, number, number],
 };
 
-const glyphsDarkToLight = ["█", "▓", "▒", "░", " "];
-
 /** Parse hex to 0–255 RGB. Supports #RGB and #RRGGBB. */
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const m = hex.replace(/^#/, "").match(/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
