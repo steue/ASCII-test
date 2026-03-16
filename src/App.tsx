@@ -11,7 +11,8 @@ import {
 
 const MODEL_ACCEPT = ".glb,.gltf";
 
-const assetUrl = (file: string) => new URL(file, import.meta.env.BASE_URL).pathname;
+const assetUrl = (file: string) =>
+  new URL(file, (import.meta as any).env.BASE_URL).pathname;
 
 interface ModelProps {
   scale: number;
