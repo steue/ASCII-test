@@ -11,6 +11,8 @@ import {
 
 const MODEL_ACCEPT = ".glb,.gltf";
 
+const assetUrl = (file: string) => new URL(file, import.meta.env.BASE_URL).pathname;
+
 interface ModelProps {
   scale: number;
   rotation: [number, number, number];
@@ -49,13 +51,13 @@ function Model({
 const PRESET_MODELS = [
   {
     name: "Icecream",
-    url: "/ice_cream.glb",
+    url: assetUrl("ice_cream.glb"),
     baseScale: 0.8,
     position: [0, 0, 0] as [number, number, number],
   },
   {
     name: "Present",
-    url: "/present.glb",
+    url: assetUrl("present.glb"),
     baseScale: 0.8,
     position: [0, 0, 0] as [number, number, number],
   },
