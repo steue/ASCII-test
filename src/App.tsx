@@ -511,7 +511,7 @@ export default function App() {
               {[
                 { name: ".:-=+*#%@", chars: " .:-=+*#%@", resolution: 0.22 },
                 { name: ".-+*#", chars: " .-+*#", resolution: 0.2 },
-                { name: "Blocky", chars: " ░▒▓█▄▀", resolution: 0.16 },
+                { name: "Blocky", chars: " ∙≈░▒▓█", resolution: 0.16 },
               ].map((preset) => {
                 const isActive = activePresetChars === preset.chars;
                 return (
