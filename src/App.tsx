@@ -48,14 +48,14 @@ function Model({
 
 const PRESET_MODELS = [
   {
-    name: "Icecream",
-    url: "/ice_cream.glb",
+    name: "Ice cream",
+    url: "ice_cream.glb",
     baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
   {
     name: "Present",
-    url: "/present.glb",
+    url: "present.glb",
     baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
