@@ -212,9 +212,20 @@ export default function App() {
     invert: false,
   });
 
+  // Camera + lighting controls
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [autoRotateSpeed, setAutoRotateSpeed] = useState(2);
+  const [brightness, setBrightness] = useState(1.5); // overall light intensity multiplier
+  const [exposure, setExposure] = useState(1.2); // renderer exposure multiplier
+  const [contrast, setContrast] = useState(1); // redistributes light between ambient and key
+  const [lightRotX, setLightRotX] = useState(30); // light rotation around X axis (deg)
+  const [lightRotY, setLightRotY] = useState(45); // light rotation around Y axis (deg)
+  const [lightRotZ, setLightRotZ] = useState(0); // light rotation around Z axis (deg)
+
   const [copiedToast, setCopiedToast] = useState(false);
   const [fallbackModalText, setFallbackModalText] = useState<string | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const glRef = useRef<any>(null);
 
   // Revoke object URL when custom file changes or unmount
   useEffect(() => {
@@ -327,6 +338,64 @@ export default function App() {
   /** Panel UI color: same hue/chroma as FG, contrast-safe over the panel background. */
   const uiColorPanel = ensureContrast(asciiSettings.fgColor, panelBg);
 
+  // Map brightness/contrast into actual light intensities.
+  const clampedContrast = Math.max(0.2, Math.min(3, contrast));
+
+  // Higher contrast → relatively less ambient, more directional.
+  const ambientIntensity = 0.5 * brightness * (2.2 - 0.8 * clampedContrast);
+  const keyIntensity = 1 * brightness * (0.6 + 0.8 * clampedContrast);
+
+  // Directional light position from base vector rotated by XYZ Euler (in degrees).
+  const deg2rad = Math.PI / 180;
+  const rx = lightRotX * deg2rad;
+  const ry = lightRotY * deg2rad;
+  const rz = lightRotZ * deg2rad;
+
+  // Start with a forward vector and rotate X, then Y, then Z.
+  let lx = 0;
+  let ly = 0;
+  let lz = 1;
+
+  // Rotate around X
+  {
+    const c = Math.cos(rx);
+    const s = Math.sin(rx);
+    const ny = ly * c - lz * s;
+    const nz = ly * s + lz * c;
+    ly = ny;
+    lz = nz;
+  }
+
+  // Rotate around Y
+  {
+    const c = Math.cos(ry);
+    const s = Math.sin(ry);
+    const nx = lx * c + lz * s;
+    const nz = -lx * s + lz * c;
+    lx = nx;
+    lz = nz;
+  }
+
+  // Rotate around Z
+  {
+    const c = Math.cos(rz);
+    const s = Math.sin(rz);
+    const nx = lx * c - ly * s;
+    const ny = lx * s + ly * c;
+    lx = nx;
+    ly = ny;
+  }
+
+  const lightRadius = 10;
+  const keyLightPosition: [number, number, number] = [lx * lightRadius, ly * lightRadius, lz * lightRadius];
+
+  // Keep renderer exposure in sync with control
+  useEffect(() => {
+    if (glRef.current) {
+      glRef.current.toneMappingExposure = exposure;
+    }
+  }, [exposure]);
+
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden">
       <style>{`
@@ -367,12 +436,13 @@ export default function App() {
           camera={{ position: [0, 0, 3], fov: 50 }}
           gl={{ preserveDrawingBuffer: true }}
           onCreated={({ gl }) => {
+            glRef.current = gl;
             gl.setSize(gl.domElement.clientWidth, gl.domElement.clientHeight);
+            gl.toneMappingExposure = exposure;
           }}
         >
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <pointLight position={[-10, -10, -5]} intensity={0.5} />
+          <ambientLight intensity={ambientIntensity} />
+          <directionalLight position={keyLightPosition} intensity={keyIntensity} />
 
           <Suspense fallback={null}>
             <Model
@@ -397,8 +467,8 @@ export default function App() {
           </Suspense>
 
           <OrbitControls
-            autoRotate
-            autoRotateSpeed={2}
+            autoRotate={autoRotate}
+            autoRotateSpeed={autoRotateSpeed}
             enablePan
             enableZoom
             enableRotate
@@ -420,7 +490,7 @@ export default function App() {
               className="text-left font-mono text-[15px] transition-opacity hover:opacity-100 block"
               style={{ ...fontStyle, color: uiColor, opacity: 0.9 }}
             >
-              Custom Model
+              Your Model
             </span>
           </label>
           {PRESET_MODELS.map((model) => (
@@ -437,20 +507,6 @@ export default function App() {
               {model.name}
             </button>
           ))}
-          {customFile && (
-            <button
-              onClick={() => handleModelChange(customFile.url)}
-              className="text-left font-mono text-[15px] transition-opacity hover:opacity-100 truncate max-w-[180px]"
-              style={{
-                ...fontStyle,
-                color: uiColor,
-                opacity: selectedModel === customFile.url ? 1 : 0.7,
-              }}
-              title={customFile.name}
-            >
-              Your model
-            </button>
-          )}
         </div>
       </div>
 
@@ -462,14 +518,14 @@ export default function App() {
             right: 24,
             top: "50%",
             transform: "translateY(-50%)",
-            zIndex: 2147483647,
+            zIndex: 2147483600,
             padding: 16,
             minWidth: 220,
             display: "flex",
             flexDirection: "column",
             gap: 24,
             background: panelBg,
-            borderRadius: 8,
+            borderRadius: 10,
             border: `1px solid ${uiColorPanel}`,
             fontFamily: "DM Mono, monospace",
             color: uiColorPanel,
@@ -685,6 +741,172 @@ export default function App() {
         </div>,
         document.body
       )}
+
+      {/* Bottom-centered camera control bar */}
+      <div
+        style={{
+          position: "fixed",
+          left: "50%",
+          bottom: 24,
+          transform: "translateX(-50%)",
+          zIndex: 2147483647,
+          padding: "10px 16px",
+          borderRadius: 10,
+          border: `1px solid ${uiColorPanel}`,
+          background: "rgba(15, 15, 15, 0.95)",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: 16,
+          fontFamily: "DM Mono, monospace",
+          color: uiColorPanel,
+          fontSize: 13,
+          maxWidth: "90vw",
+        }}
+      >
+        {/* Exposure (renderer tone mapping) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 190 }}>
+          <span style={{ whiteSpace: "nowrap" }}>Exposure</span>
+          <input
+            type="range"
+            min={0.4}
+            max={3}
+            step={0.05}
+            value={exposure}
+            onChange={(e) => setExposure(Number(e.target.value))}
+            style={{
+              width: 120,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+        </div>
+
+        {/* Light intensity (base for all lights) */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 190 }}>
+          <span style={{ whiteSpace: "nowrap" }}>Light inten</span>
+          <input
+            type="range"
+            min={0.2}
+            max={4}
+            step={0.1}
+            value={brightness}
+            onChange={(e) => setBrightness(Number(e.target.value))}
+            style={{
+              width: 120,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+        </div>
+
+        {/* Contrast remaps ambient vs key for punchy shading */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 190 }}>
+          <span style={{ whiteSpace: "nowrap" }}>Contrast</span>
+          <input
+            type="range"
+            min={0.4}
+            max={3}
+            step={0.05}
+            value={contrast}
+            onChange={(e) => setContrast(Number(e.target.value))}
+            style={{
+              width: 120,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+        </div>
+
+        {/* Light rotation around X/Y/Z axes */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 260 }}>
+          <span style={{ whiteSpace: "nowrap" }}>Light XYZ</span>
+          <input
+            type="range"
+            min={-90}
+            max={90}
+            step={1}
+            value={lightRotX}
+            onChange={(e) => setLightRotX(Number(e.target.value))}
+            title="Light X rotation"
+            style={{
+              width: 70,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+          <input
+            type="range"
+            min={0}
+            max={360}
+            step={1}
+            value={lightRotY}
+            onChange={(e) => setLightRotY(Number(e.target.value))}
+            title="Light Y rotation"
+            style={{
+              width: 70,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+          <input
+            type="range"
+            min={-180}
+            max={180}
+            step={1}
+            value={lightRotZ}
+            onChange={(e) => setLightRotZ(Number(e.target.value))}
+            title="Light Z rotation"
+            style={{
+              width: 70,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+        </div>
+
+        {/* Rotation speed + pause auto-rotation */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 180 }}>
+          <span style={{ whiteSpace: "nowrap" }}>Auto-rot</span>
+          <input
+            type="range"
+            min={0}
+            max={6}
+            step={0.1}
+            value={autoRotateSpeed}
+            onChange={(e) => setAutoRotateSpeed(Number(e.target.value))}
+            style={{
+              width: 90,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setAutoRotate((prev) => !prev)}
+            style={{
+              padding: "4px 10px",
+              borderRadius: 999,
+              border: `1px solid ${uiColorPanel}`,
+              background: autoRotate ? `${uiColorPanel}20` : "transparent",
+              color: uiColorPanel,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: 12,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {autoRotate ? "Pause rot" : "Play rot"}
+          </button>
+        </div>
+      </div>
 
       {/* Fallback modal when clipboard is unavailable */}
       {fallbackModalText !== null &&
