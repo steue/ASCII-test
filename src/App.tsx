@@ -1,5 +1,5 @@
 import { Suspense, useState, useCallback, useEffect, useRef } from "react";
-import type { Mesh } from "three";
+import type { Mesh, PerspectiveCamera } from "three";
 import { createPortal } from "react-dom";
 import { Canvas } from "@react-three/fiber";
 import {
@@ -198,6 +198,9 @@ export default function App() {
   const [userScale, setUserScale] = useState(1);
   const [customFile, setCustomFile] = useState<{ url: string; name: string } | null>(null);
 
+  // Camera FOV as focal length (mm-equivalent for a 24mm sensor height)
+  const [focalLength, setFocalLength] = useState(50);
+
   const [asciiSettings, setAsciiSettings] = useState({
     resolution: 0.22,
     characters: " .:-=+*#%@",
@@ -220,6 +223,7 @@ export default function App() {
   const [fallbackModalText, setFallbackModalText] = useState<string | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const glRef = useRef<any>(null);
+  const cameraRef = useRef<PerspectiveCamera | null>(null);
 
   // Revoke object URL when custom file changes or unmount
   useEffect(() => {
@@ -257,6 +261,7 @@ export default function App() {
     setAutoRotateSpeed(2);
     setSelectedModel(PRESET_MODELS[0].url);
     setCustomFile(null);
+    setFocalLength(50);
   };
 
   const handleModelChange = (url: string) => {
@@ -393,6 +398,19 @@ export default function App() {
   const lightRadius = 10;
   const keyLightPosition: [number, number, number] = [lx * lightRadius, ly * lightRadius, lz * lightRadius];
 
+  // Map focal length (mm) to vertical FOV assuming 24mm sensor height
+  const focalToFov = (f: number) => {
+    const sensorHeight = 24;
+    return (2 * Math.atan((sensorHeight / 2) / f) * 180) / Math.PI;
+  };
+
+  useEffect(() => {
+    if (cameraRef.current) {
+      cameraRef.current.fov = focalToFov(focalLength);
+      cameraRef.current.updateProjectionMatrix();
+    }
+  }, [focalLength]);
+
   // Keep renderer exposure in sync with control
   useEffect(() => {
     if (glRef.current) {
@@ -437,12 +455,13 @@ export default function App() {
 
       <div className="canvas-wrap" ref={canvasWrapRef}>
         <Canvas
-          camera={{ position: [0, 0, 3], fov: 50 }}
+          camera={{ position: [0, 0, 3], fov: focalToFov(focalLength) }}
           gl={{ preserveDrawingBuffer: true }}
-          onCreated={({ gl }) => {
+          onCreated={({ gl, camera }) => {
             glRef.current = gl;
             gl.setSize(gl.domElement.clientWidth, gl.domElement.clientHeight);
             gl.toneMappingExposure = exposure;
+            cameraRef.current = camera as PerspectiveCamera;
           }}
         >
           <ambientLight intensity={ambientIntensity} />
@@ -799,8 +818,12 @@ export default function App() {
             min={0.2}
             max={4}
             step={0.1}
-            value={brightness}
-            onChange={(e) => setBrightness(Number(e.target.value))}
+            value={4.2 - brightness}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              const inverted = 0.2 + 4 - v;
+              setBrightness(inverted);
+            }}
             style={{
               width: 120,
               height: 6,
@@ -831,7 +854,7 @@ export default function App() {
 
         {/* Light rotation around X/Y/Z axes */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 260 }}>
-          <span style={{ whiteSpace: "nowrap" }}>Light XYZ</span>
+          <span style={{ whiteSpace: "nowrap" }}>Light dir</span>
           <input
             type="range"
             min={-90}
@@ -839,7 +862,7 @@ export default function App() {
             step={1}
             value={lightRotX}
             onChange={(e) => setLightRotX(Number(e.target.value))}
-            title="Light X rotation"
+            title="Light X (tilt up/down)"
             style={{
               width: 70,
               height: 6,
@@ -854,7 +877,7 @@ export default function App() {
             step={1}
             value={lightRotY}
             onChange={(e) => setLightRotY(Number(e.target.value))}
-            title="Light Y rotation"
+            title="Light Y (orbit around)"
             style={{
               width: 70,
               height: 6,
@@ -869,7 +892,7 @@ export default function App() {
             step={1}
             value={lightRotZ}
             onChange={(e) => setLightRotZ(Number(e.target.value))}
-            title="Light Z rotation"
+            title="Light Z (roll / twist)"
             style={{
               width: 70,
               height: 6,
@@ -913,6 +936,26 @@ export default function App() {
           >
             {autoRotate ? "Pause rot" : "Play rot"}
           </button>
+        </div>
+
+        {/* Focal length / FOV control */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 210 }}>
+          <span style={{ whiteSpace: "nowrap" }}>Focal len</span>
+          <input
+            type="range"
+            min={20}
+            max={120}
+            step={1}
+            value={focalLength}
+            onChange={(e) => setFocalLength(Number(e.target.value))}
+            style={{
+              width: 140,
+              height: 6,
+              accentColor: uiColorPanel,
+              cursor: "pointer",
+            }}
+          />
+          <span style={{ minWidth: 42, textAlign: "right" }}>{focalLength.toFixed(0)}mm</span>
         </div>
       </div>
 
