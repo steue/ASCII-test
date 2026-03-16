@@ -66,6 +66,8 @@ const CUSTOM_MODEL_DEFAULTS = {
   position: [0, 0, 0] as [number, number, number],
 };
 
+const glyphsDarkToLight = ["█", "▓", "▒", "░", " "];
+
 /** Parse hex to 0–255 RGB. Supports #RGB and #RRGGBB. */
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const m = hex.replace(/^#/, "").match(/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
@@ -591,6 +593,7 @@ export default function App() {
                 { name: ".:-=+*#%@", chars: " .:-=+*#%@", resolution: 0.22 },
                 { name: ".-+*#", chars: " .-+*#", resolution: 0.2 },
                 { name: "Blocky", chars: " ∙≈░▒▓█", resolution: 0.16 },
+                { name: "Braille ⣿⠿⠶+·", chars: " ·+⠶⠿⣿", resolution: 0.2 },
               ].map((preset) => {
                 const isActive = activePresetChars === preset.chars;
                 return (
