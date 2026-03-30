@@ -689,10 +689,11 @@ export default function App() {
             <label style={{ display: "block", marginBottom: 12 }}>Presets</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[
-                { name: ".:-=+*#%@", chars: " .:-=+*#%@", resolution: 0.22 },
-                { name: ".-+*#", chars: " .-+*#", resolution: 0.2 },
-                { name: "Blocky", chars: " ∙░▒▓█", resolution: 0.2 },
-                { name: "Braille ⠐⠰⠶⠿⣿", chars: " ⠐⠰⠶⠿⣿", resolution: 0.2 },
+                { name: "Short", chars: " .-+*#", resolution: 0.22 },
+                { name: "Minimal", chars: " .:-=+*%#@", resolution: 0.2 },
+                { name: "Extended", chars: " .'`:;-=+*ox%#@", resolution: 0.2 },
+                { name: "Hybrid", chars: " .:-=+*#%░▒▓█", resolution: 0.2 },
+                { name: "Experiment", chars: " .░▒▓█@", resolution: 0.2 },
               ].map((preset) => {
                 const isActive = activePresetChars === preset.chars;
                 return (
