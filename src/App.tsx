@@ -286,7 +286,6 @@ function panelBackgroundFromControl(bgHex: string): string {
 
 export default function App() {
   const [selectedModel, setSelectedModel] = useState(PRESET_MODELS[0].url);
-  const [userScale, setUserScale] = useState(1);
   const [customFile, setCustomFile] = useState<{ url: string; name: string } | null>(null);
 
   // Camera FOV as focal length (mm-equivalent for a 24mm sensor height)
@@ -343,7 +342,6 @@ export default function App() {
       bgColor: "#000000",
       invert: false,
     });
-    setUserScale(1);
     setBrightness(1.5);
     setExposure(1.2);
     setContrast(1);
@@ -427,7 +425,6 @@ export default function App() {
   const position: [number, number, number] = isCustom
     ? CUSTOM_MODEL_DEFAULTS.position
     : currentPreset?.position ?? [0, 0, 0];
-  const finalScale = baseScale * userScale;
 
   const fontStyle = { fontFamily: "DM Mono, monospace" };
 
@@ -564,7 +561,7 @@ export default function App() {
             <group ref={modelRootRef}>
               <Model
                 key={selectedModel}
-                scale={finalScale}
+                scale={baseScale}
                 rotation={[0, 0, 0]}
                 modelUrl={selectedModel}
                 position={position}
@@ -595,7 +592,7 @@ export default function App() {
           <FitDefaultView
             rootRef={modelRootRef}
             controlsRef={orbitControlsRef}
-            fitKey={`${selectedModel}|${finalScale}|${position.join(",")}`}
+            fitKey={`${selectedModel}|${baseScale}|${position.join(",")}`}
           />
         </Canvas>
       </div>
@@ -749,25 +746,6 @@ export default function App() {
               }}
             />
             <div style={{ marginTop: 4, opacity: 0.8, color: uiColorPanel }}>{asciiSettings.resolution.toFixed(3)}</div>
-          </div>
-
-          <div>
-            <label style={{ display: "block", marginBottom: 12 }}>Scale</label>
-            <input
-              type="range"
-              min={0.1}
-              max={3}
-              step={0.1}
-              value={userScale}
-              onChange={(e) => setUserScale(Number(e.target.value))}
-              style={{
-                width: "100%",
-                height: 6,
-                accentColor: uiColorPanel,
-                cursor: "pointer",
-              }}
-            />
-            <div style={{ marginTop: 4, opacity: 0.8, color: uiColorPanel }}>{userScale.toFixed(2)}</div>
           </div>
 
           <div>
