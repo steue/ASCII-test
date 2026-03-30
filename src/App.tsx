@@ -1,7 +1,17 @@
-import { Suspense, useState, useCallback, useEffect, useRef } from "react";
-import type { Mesh, PerspectiveCamera } from "three";
+import {
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type RefObject,
+} from "react";
+import type { Group, Mesh, PerspectiveCamera } from "three";
+import { Box3, Vector3 } from "three";
 import { createPortal } from "react-dom";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
   OrbitControls,
   AsciiRenderer,
@@ -46,16 +56,97 @@ function Model({
   );
 }
 
+/** Orbit target + camera distance from bounding box so the full model is in frame (pivot-at-feet GLBs). */
+function FitDefaultView({
+  rootRef,
+  controlsRef,
+  fitKey,
+}: {
+  rootRef: RefObject<Group>;
+  controlsRef: RefObject<OrbitControlsImpl | null>;
+  fitKey: string;
+}) {
+  const { camera } = useThree();
+
+  useLayoutEffect(() => {
+    let cancelled = false;
+
+    const apply = () => {
+      if (cancelled) return;
+      const root = rootRef.current;
+      const ctrl = controlsRef.current;
+      const persp = camera as PerspectiveCamera;
+      if (!root || !ctrl) {
+        requestAnimationFrame(apply);
+        return;
+      }
+      root.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(root);
+      if (box.isEmpty()) {
+        requestAnimationFrame(apply);
+        return;
+      }
+
+      const center = new Vector3();
+      const size = new Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+
+      const fovRad = (persp.fov * Math.PI) / 180;
+      const halfH = Math.tan(fovRad / 2);
+      const halfW = halfH * persp.aspect;
+      const distY = (size.y / 2) / halfH;
+      const distX = (size.x / 2) / Math.max(halfW, 1e-6);
+      const distance = Math.max(distX, distY, 0.01) * 1.12;
+
+      ctrl.target.copy(center);
+      persp.position.copy(center).add(new Vector3(0, 0, distance));
+      ctrl.update();
+    };
+
+    requestAnimationFrame(apply);
+    return () => {
+      cancelled = true;
+    };
+  }, [fitKey, camera, rootRef, controlsRef]);
+
+  return null;
+}
+
 const PRESET_MODELS = [
   {
-    name: "Ice cream",
-    url: "ice_cream.glb",
+    name: "Assassin",
+    url: "marathon/Assassin.glb",
     baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
   {
-    name: "Present",
-    url: "present.glb",
+    name: "Destroyer",
+    url: "marathon/Destroyer.glb",
+    baseScale: 0.9,
+    position: [0, 0, 0] as [number, number, number],
+  },
+  {
+    name: "Recon",
+    url: "marathon/Recon.glb",
+    baseScale: 0.9,
+    position: [0, 0, 0] as [number, number, number],
+  },
+  {
+    name: "Thief",
+    url: "marathon/Thief.glb",
+    baseScale: 0.9,
+    position: [0, 0, 0] as [number, number, number],
+  },
+  {
+    name: "Triage",
+    url: "marathon/Triage.glb",
+    baseScale: 0.9,
+    position: [0, 0, 0] as [number, number, number],
+  },
+  {
+    name: "Vandal",
+    url: "marathon/Vandal.glb",
     baseScale: 0.9,
     position: [0, 0, 0] as [number, number, number],
   },
@@ -224,6 +315,8 @@ export default function App() {
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const glRef = useRef<any>(null);
   const cameraRef = useRef<PerspectiveCamera | null>(null);
+  const modelRootRef = useRef<Group>(null);
+  const orbitControlsRef = useRef<OrbitControlsImpl | null>(null);
 
   // Revoke object URL when custom file changes or unmount
   useEffect(() => {
@@ -468,13 +561,15 @@ export default function App() {
           <directionalLight position={keyLightPosition} intensity={keyIntensity} />
 
           <Suspense fallback={null}>
-            <Model
-              key={selectedModel}
-              scale={finalScale}
-              rotation={[0, 0, 0]}
-              modelUrl={selectedModel}
-              position={position}
-            />
+            <group ref={modelRootRef}>
+              <Model
+                key={selectedModel}
+                scale={finalScale}
+                rotation={[0, 0, 0]}
+                modelUrl={selectedModel}
+                position={position}
+              />
+            </group>
             <Environment preset="studio" />
           </Suspense>
 
@@ -490,11 +585,17 @@ export default function App() {
           </Suspense>
 
           <OrbitControls
+            ref={orbitControlsRef}
             autoRotate={autoRotate}
             autoRotateSpeed={autoRotateSpeed}
             enablePan
             enableZoom
             enableRotate
+          />
+          <FitDefaultView
+            rootRef={modelRootRef}
+            controlsRef={orbitControlsRef}
+            fitKey={`${selectedModel}|${finalScale}|${position.join(",")}`}
           />
         </Canvas>
       </div>
